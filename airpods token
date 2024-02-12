@@ -1,0 +1,58 @@
+ // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+
+contract AirPodsToken is ERC20, Ownable {
+    event AirPodsRedeemed(address indexed account, uint8 brand, uint256 airPodsCost);
+    event AirPodsAdded(uint8 brandNumber, uint256 airPodsCost);
+
+    mapping(address => uint8) public userSelectedAirPods;
+    mapping(uint8 => uint256) public airPodsCosts;
+
+    // Set the initial owner address
+    constructor() ERC20("AirPodsToken", "APD") Ownable(msg.sender) {
+        // Default AirPods costs
+        airPodsCosts[1] = 300; // Samsung AirPods cost
+        airPodsCosts[2] = 200; // Sony AirPods cost
+        airPodsCosts[3] = 700; // Apple AirPods cost
+    }
+
+    function minttokens(address to, uint256 length) external onlyOwner {
+        _mint(to, length);
+    }
+
+    function burntokens(uint256 length) external {
+        require(length > 0, "Token amount to destroy must be greater than zero");
+        require(balanceOf(msg.sender) >= length, "Insufficient balance for AirPods destruction");
+        _burn(msg.sender, length);
+    }
+
+    function redeemAirPods(uint8 brandNumber) external {
+        require(brandNumber >= 1 && brandNumber <= 3, "Invalid AirPods brand number");
+
+        uint256 airPodsCost = airPodsCosts[brandNumber];
+
+        require(balanceOf(msg.sender) >= airPodsCost, "Insufficient balance for AirPods redemption");
+        _burn(msg.sender, airPodsCost);
+
+        userSelectedAirPods[msg.sender] = brandNumber;
+        emit AirPodsRedeemed(msg.sender, brandNumber, airPodsCost);
+    }
+
+    function transfertokens(address recipient, uint256 length) external {
+        require(recipient != address(0), "Invalid recipient address provided");
+        require(balanceOf(msg.sender) >= length, "Insufficient balance for AirPods transfer");
+        _transfer(msg.sender, recipient, length);
+    }
+
+    function addAirPods(uint8 brandNumber, uint256 airPodsCost) external onlyOwner {
+        require(brandNumber >= 4, "AirPods brand number must be 4 or greater");
+        require(airPodsCost > 0, "AirPods cost must be greater than zero");
+
+        airPodsCosts[brandNumber] = airPodsCost;
+        emit AirPodsAdded(brandNumber, airPodsCost);
+    }
+}
